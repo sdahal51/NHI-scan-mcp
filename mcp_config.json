@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "nhi-scan": {
+      "command": "python",
+      "args": [
+        "-m",
+        "nhi_scan_mcp.server"
+      ],
+      "env": {
+        "AWS_REGION": "us-east-1"
+      }
+    }
+  }
+}
