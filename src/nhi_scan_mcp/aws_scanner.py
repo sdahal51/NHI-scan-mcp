@@ -62,7 +62,6 @@ class AWSIAMScanner:
             paginator = self.iam_client.get_paginator("list_users")
             for page in paginator.paginate():
                 for user_data in page["Users"]:
-                    # Get additional user details
                     user = self._enrich_user_data(user_data)
                     users.append(user)
         except ClientError as e:
@@ -81,7 +80,6 @@ class AWSIAMScanner:
         """
         username = user_data["UserName"]
 
-        # Get tags
         tags = {}
         try:
             tag_response = self.iam_client.list_user_tags(UserName=username)
@@ -89,7 +87,6 @@ class AWSIAMScanner:
         except ClientError:
             pass
 
-        # Get access keys
         access_keys = []
         try:
             key_response = self.iam_client.list_access_keys(UserName=username)
@@ -104,7 +101,6 @@ class AWSIAMScanner:
         except ClientError:
             pass
 
-        # Get MFA devices
         mfa_devices = []
         try:
             mfa_response = self.iam_client.list_mfa_devices(UserName=username)
@@ -138,7 +134,6 @@ class AWSIAMScanner:
             paginator = self.iam_client.get_paginator("list_roles")
             for page in paginator.paginate():
                 for role_data in page["Roles"]:
-                    # Get additional role details
                     role = self._enrich_role_data(role_data)
                     roles.append(role)
         except ClientError as e:
@@ -157,7 +152,6 @@ class AWSIAMScanner:
         """
         rolename = role_data["RoleName"]
 
-        # Get tags
         tags = {}
         try:
             tag_response = self.iam_client.list_role_tags(RoleName=rolename)
@@ -165,7 +159,6 @@ class AWSIAMScanner:
         except ClientError:
             pass
 
-        # Get role last used information
         last_used = None
         try:
             role_detail = self.iam_client.get_role(RoleName=rolename)
@@ -201,7 +194,6 @@ class AWSIAMScanner:
         groups = []
 
         try:
-            # Get attached managed policies
             attached_response = self.iam_client.list_attached_user_policies(
                 UserName=username
             )
@@ -210,11 +202,9 @@ class AWSIAMScanner:
                 for policy in attached_response.get("AttachedPolicies", [])
             ]
 
-            # Get inline policies
             inline_response = self.iam_client.list_user_policies(UserName=username)
             inline_policies = inline_response.get("PolicyNames", [])
 
-            # Get groups
             groups_response = self.iam_client.list_groups_for_user(UserName=username)
             groups = [group["GroupName"] for group in groups_response.get("Groups", [])]
 
@@ -236,7 +226,6 @@ class AWSIAMScanner:
         inline_policies = []
 
         try:
-            # Get attached managed policies
             attached_response = self.iam_client.list_attached_role_policies(
                 RoleName=rolename
             )
@@ -245,7 +234,6 @@ class AWSIAMScanner:
                 for policy in attached_response.get("AttachedPolicies", [])
             ]
 
-            # Get inline policies
             inline_response = self.iam_client.list_role_policies(RoleName=rolename)
             inline_policies = inline_response.get("PolicyNames", [])
 

@@ -56,13 +56,7 @@ def scan_iam_identities(
     region: str = "us-east-1",
     include_permissions: bool = False,
 ) -> str:
-    """Scan AWS IAM to identify all users and roles, classify NHIs, and optionally analyze permissions.
-
-    This is the main comprehensive scanning tool that:
-    1. Lists all IAM users and roles in the account
-    2. Identifies which identities are Non-Human Identities (NHIs)
-    3. Classifies NHIs by category (service roles, machine users, etc.)
-    4. Optionally analyzes permissions for each identity
+    """Scan all IAM users and roles, identify NHIs, and optionally analyze permissions.
 
     Args:
         aws_access_key_id: AWS access key ID (optional, uses default credential chain if not provided)
@@ -131,10 +125,7 @@ def list_nhi_identities(
     region: str = "us-east-1",
     min_confidence: float = 0.5,
 ) -> str:
-    """List all Non-Human Identities (NHIs) in the AWS account.
-
-    This tool focuses specifically on identifying and listing NHIs without
-    detailed permission analysis.
+    """List all Non-Human Identities (NHIs) with optional confidence filtering.
 
     Args:
         aws_access_key_id: AWS access key ID (optional)
@@ -196,10 +187,7 @@ def analyze_caller_permissions(
     aws_session_token: Optional[str] = None,
     region: str = "us-east-1",
 ) -> str:
-    """Analyze the permissions of the current AWS credentials (caller).
-
-    This tool examines the permissions associated with the provided AWS credentials
-    to understand what level of access they have.
+    """Analyze the permissions of the current AWS credentials.
 
     Args:
         aws_access_key_id: AWS access key ID (optional)
@@ -308,10 +296,7 @@ def distinguish_users_vs_nhi(
     aws_session_token: Optional[str] = None,
     region: str = "us-east-1",
 ) -> str:
-    """Distinguish between human users and non-human identities with a detailed summary.
-
-    This tool provides a comprehensive breakdown separating human users from
-    various types of NHIs, with statistics and recommendations.
+    """Distinguish between human users and non-human identities with stats and recommendations.
 
     Args:
         aws_access_key_id: AWS access key ID (optional)

@@ -7,7 +7,6 @@ from pydantic import BaseModel, Field
 
 
 class IdentityType(str, Enum):
-    """Types of IAM identities."""
     USER = "user"
     ROLE = "role"
     SERVICE_ACCOUNT = "service_account"
@@ -15,7 +14,6 @@ class IdentityType(str, Enum):
 
 
 class NHICategory(str, Enum):
-    """Categories of Non-Human Identities."""
     SERVICE_ROLE = "service_role"
     MACHINE_USER = "machine_user"
     SERVICE_ACCOUNT = "service_account"
@@ -29,7 +27,6 @@ class NHICategory(str, Enum):
 
 
 class IAMIdentity(BaseModel):
-    """Base model for IAM identity."""
     arn: str
     name: str
     identity_type: IdentityType
@@ -41,7 +38,6 @@ class IAMIdentity(BaseModel):
 
 
 class IAMUser(IAMIdentity):
-    """IAM User model."""
     user_id: str
     path: str
     password_last_used: Optional[datetime] = None
@@ -51,7 +47,6 @@ class IAMUser(IAMIdentity):
 
 
 class IAMRole(IAMIdentity):
-    """IAM Role model."""
     role_id: str
     path: str
     assume_role_policy: Dict[str, Any]
@@ -61,7 +56,6 @@ class IAMRole(IAMIdentity):
 
 
 class NHIIdentification(BaseModel):
-    """NHI identification result."""
     identity: IAMIdentity
     is_nhi: bool
     nhi_category: NHICategory
@@ -73,7 +67,6 @@ class NHIIdentification(BaseModel):
 
 
 class PermissionLevel(str, Enum):
-    """Permission levels."""
     ADMIN = "admin"
     POWER_USER = "power_user"
     READ_WRITE = "read_write"
@@ -83,7 +76,6 @@ class PermissionLevel(str, Enum):
 
 
 class PermissionAnalysis(BaseModel):
-    """Permission analysis result."""
     identity_arn: str
     permission_level: PermissionLevel
     attached_policies: List[str] = Field(default_factory=list)
@@ -98,7 +90,6 @@ class PermissionAnalysis(BaseModel):
 
 
 class ScanResult(BaseModel):
-    """Complete scan result."""
     scan_time: datetime
     account_id: str
     caller_identity: Dict[str, Any]

@@ -50,21 +50,17 @@ class PermissionAnalyzer:
         Returns:
             Permission analysis result
         """
-        # Get user policies
         attached_policies, inline_policies, groups = self.scanner.get_user_policies(
             user.name
         )
 
-        # Check for admin access
         admin_access = any(
             policy in self.ADMIN_POLICIES for policy in attached_policies
         )
 
-        # Collect all permissions
         all_permissions = set()
         resource_access = {}
 
-        # Analyze attached managed policies
         for policy_arn in attached_policies:
             policy_doc = self.scanner.get_policy_document(policy_arn)
             if policy_doc:
@@ -72,7 +68,6 @@ class PermissionAnalyzer:
                 all_permissions.update(perms)
                 self._merge_resource_access(resource_access, resources)
 
-        # Analyze inline policies
         for policy_name in inline_policies:
             policy_doc = self.scanner.get_inline_policy_document(
                 user.name, policy_name, is_role=False
@@ -82,12 +77,10 @@ class PermissionAnalyzer:
                 all_permissions.update(perms)
                 self._merge_resource_access(resource_access, resources)
 
-        # Check for dangerous permissions
         dangerous_perms = [
             perm for perm in all_permissions if self._is_dangerous_permission(perm)
         ]
 
-        # Determine permission level
         permission_level = self._determine_permission_level(
             attached_policies, all_permissions, admin_access
         )
@@ -112,19 +105,15 @@ class PermissionAnalyzer:
         Returns:
             Permission analysis result
         """
-        # Get role policies
         attached_policies, inline_policies = self.scanner.get_role_policies(role.name)
 
-        # Check for admin access
         admin_access = any(
             policy in self.ADMIN_POLICIES for policy in attached_policies
         )
 
-        # Collect all permissions
         all_permissions = set()
         resource_access = {}
 
-        # Analyze attached managed policies
         for policy_arn in attached_policies:
             policy_doc = self.scanner.get_policy_document(policy_arn)
             if policy_doc:
@@ -132,7 +121,6 @@ class PermissionAnalyzer:
                 all_permissions.update(perms)
                 self._merge_resource_access(resource_access, resources)
 
-        # Analyze inline policies
         for policy_name in inline_policies:
             policy_doc = self.scanner.get_inline_policy_document(
                 role.name, policy_name, is_role=True
@@ -142,12 +130,10 @@ class PermissionAnalyzer:
                 all_permissions.update(perms)
                 self._merge_resource_access(resource_access, resources)
 
-        # Check for dangerous permissions
         dangerous_perms = [
             perm for perm in all_permissions if self._is_dangerous_permission(perm)
         ]
 
-        # Determine permission level
         permission_level = self._determine_permission_level(
             attached_policies, all_permissions, admin_access
         )
@@ -157,7 +143,7 @@ class PermissionAnalyzer:
             permission_level=permission_level,
             attached_policies=attached_policies,
             inline_policies=inline_policies,
-            group_memberships=[],  # Roles don't have groups
+            group_memberships=[],
             admin_access=admin_access,
             dangerous_permissions=dangerous_perms,
             resource_access=resource_access,
@@ -181,23 +167,19 @@ class PermissionAnalyzer:
             return permissions, resource_access
 
         for statement in policy_document["Statement"]:
-            # Only process Allow statements
             if statement.get("Effect") != "Allow":
                 continue
 
-            # Extract actions
             actions = statement.get("Action", [])
             if isinstance(actions, str):
                 actions = [actions]
 
             permissions.update(actions)
 
-            # Extract resources
             resources = statement.get("Resource", [])
             if isinstance(resources, str):
                 resources = [resources]
 
-            # Map actions to resources
             for action in actions:
                 service = action.split(":")[0] if ":" in action else "unknown"
                 if service not in resource_access:
@@ -219,7 +201,6 @@ class PermissionAnalyzer:
             if service not in target:
                 target[service] = []
             target[service].extend(resources)
-            # Deduplicate
             target[service] = list(set(target[service]))
 
     def _is_dangerous_permission(self, permission: str) -> bool:
@@ -236,11 +217,9 @@ class PermissionAnalyzer:
         for dangerous in self.DANGEROUS_PERMISSIONS:
             dangerous_lower = dangerous.lower()
 
-            # Exact match
             if permission_lower == dangerous_lower:
                 return True
 
-            # Wildcard match
             if dangerous_lower.endswith("*"):
                 prefix = dangerous_lower[:-1]
                 if permission_lower.startswith(prefix):
@@ -267,15 +246,12 @@ class PermissionAnalyzer:
         if admin_access:
             return PermissionLevel.ADMIN
 
-        # Check for PowerUserAccess
         if "arn:aws:iam::aws:policy/PowerUserAccess" in attached_policies:
             return PermissionLevel.POWER_USER
 
-        # Check for wildcard permissions
         if "*:*" in all_permissions or "iam:*" in all_permissions:
             return PermissionLevel.ADMIN
 
-        # Count dangerous permissions
         dangerous_count = sum(
             1 for perm in all_permissions if self._is_dangerous_permission(perm)
         )
@@ -285,7 +261,6 @@ class PermissionAnalyzer:
         elif dangerous_count > 0:
             return PermissionLevel.READ_WRITE
 
-        # Check for read-write permissions
         write_actions = [
             perm
             for perm in all_permissions
@@ -305,7 +280,6 @@ class PermissionAnalyzer:
         if write_actions:
             return PermissionLevel.READ_WRITE
 
-        # Check for read permissions
         read_actions = [
             perm
             for perm in all_permissions
@@ -318,7 +292,6 @@ class PermissionAnalyzer:
         if read_actions:
             return PermissionLevel.READ_ONLY
 
-        # Very limited or no permissions
         if all_permissions:
             return PermissionLevel.LIMITED
 
@@ -334,7 +307,6 @@ class PermissionAnalyzer:
             caller_identity = self.scanner.get_caller_identity()
             arn = caller_identity["Arn"]
 
-            # Determine if caller is a user or role
             if ":user/" in arn:
                 username = arn.split("/")[-1]
                 users = self.scanner.list_users()
@@ -342,7 +314,6 @@ class PermissionAnalyzer:
                 if user:
                     return self.analyze_user_permissions(user)
             elif ":role/" in arn or ":assumed-role/" in arn:
-                # Extract role name
                 if ":assumed-role/" in arn:
                     role_name = arn.split("/")[-2]
                 else:
@@ -353,7 +324,6 @@ class PermissionAnalyzer:
                 if role:
                     return self.analyze_role_permissions(role)
 
-            # Fallback - return limited analysis
             return PermissionAnalysis(
                 identity_arn=arn,
                 permission_level=PermissionLevel.UNKNOWN,
@@ -366,7 +336,6 @@ class PermissionAnalyzer:
             )
 
         except Exception:
-            # Return empty analysis on error
             return PermissionAnalysis(
                 identity_arn="unknown",
                 permission_level=PermissionLevel.NONE,

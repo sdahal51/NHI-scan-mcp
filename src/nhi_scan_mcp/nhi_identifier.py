@@ -70,31 +70,26 @@ class NHIIdentifier:
         is_nhi = False
         category = NHICategory.UNCERTAIN
 
-        # Check name patterns
         name_lower = user.name.lower()
         for pattern in self.NHI_NAME_PATTERNS:
             if re.search(pattern, name_lower):
                 reasons.append(f"Name matches NHI pattern: {pattern}")
                 confidence += 0.3
 
-        # Check for lack of password usage (never logged in)
         if user.password_last_used is None:
             reasons.append("Password never used (likely programmatic access only)")
             confidence += 0.2
 
-        # Check for access keys (programmatic access)
         if user.access_keys:
             active_keys = [k for k in user.access_keys if k["Status"] == "Active"]
             if active_keys:
                 reasons.append(f"Has {len(active_keys)} active access key(s)")
                 confidence += 0.2
 
-        # Check for lack of MFA (humans should have MFA)
         if not user.mfa_devices:
             reasons.append("No MFA devices configured")
             confidence += 0.1
 
-        # Check tags
         if "Type" in user.tags:
             tag_value = user.tags["Type"].lower()
             if any(
@@ -104,7 +99,6 @@ class NHIIdentifier:
                 reasons.append(f"Tagged as: {user.tags['Type']}")
                 confidence += 0.3
 
-        # Check for "service" or "bot" explicitly in tags
         for key, value in user.tags.items():
             key_lower = key.lower()
             value_lower = value.lower()
@@ -115,13 +109,10 @@ class NHIIdentifier:
                 reasons.append(f"Tag indicates bot account: {key}={value}")
                 confidence += 0.2
 
-        # Normalize confidence
         confidence = min(confidence, 1.0)
 
-        # Determine if NHI based on confidence threshold
         if confidence >= 0.5:
             is_nhi = True
-            # Determine specific category
             if "service" in name_lower or "svc" in name_lower:
                 category = NHICategory.SERVICE_ACCOUNT
             elif any(
@@ -160,11 +151,9 @@ class NHIIdentifier:
         is_nhi = True
         category = NHICategory.SERVICE_ROLE
 
-        # Check assume role policy to determine role type
         assume_policy = role.assume_role_policy
         principals = self._extract_principals(assume_policy)
 
-        # Check for AWS service principals
         for principal in principals:
             if any(service in principal for service in self.AWS_SERVICE_PRINCIPALS):
                 if "lambda.amazonaws.com" in principal:
@@ -178,7 +167,6 @@ class NHIIdentifier:
                     reasons.append(f"AWS service role: {principal}")
                 break
 
-        # Check for cross-account access
         for principal in principals:
             if principal.startswith("arn:aws:iam::") and ":root" in principal:
                 account_id = principal.split(":")[4]
@@ -186,21 +174,18 @@ class NHIIdentifier:
                 reasons.append(f"Cross-account role (trusts account: {account_id})")
                 break
 
-        # Check for federated access (SAML, OIDC)
         for principal in principals:
             if "saml-provider" in principal or "oidc-provider" in principal:
                 category = NHICategory.FEDERATED_ROLE
                 reasons.append("Federated role (SAML/OIDC)")
                 break
 
-        # Check name patterns for application roles
         name_lower = role.name.lower()
         if any(keyword in name_lower for keyword in ["app", "application", "service"]):
             if category == NHICategory.SERVICE_ROLE:
                 category = NHICategory.APPLICATION_ROLE
                 reasons.append("Application role based on naming")
 
-        # Check tags
         if "Type" in role.tags:
             reasons.append(f"Tagged as: {role.tags['Type']}")
 

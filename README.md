@@ -1,76 +1,68 @@
 # NHI Scan MCP
 
-An MCP (Model Context Protocol) server for scanning AWS IAM credentials and identifying Non-Human Identities (NHIs) in your AWS account.
+MCP server for scanning AWS IAM identities and identifying Non-Human Identities (NHIs) such as service accounts, automation users, and machine identities.
+
+## Overview
+
+This tool scans AWS IAM users and roles to distinguish between human users and non-human identities. It analyzes naming patterns, authentication methods, access keys, MFA configuration, and IAM tags to classify identities with a confidence score. Optionally includes detailed permission analysis to assess access levels and identify potentially dangerous permissions.
 
 ## Features
 
-- **IAM Scanning**: Automatically discovers all IAM users and roles in your AWS account
-- **NHI Identification**: Intelligently classifies identities as human users or non-human identities (service accounts, bots, automation users, etc.)
-- **Permission Analysis**: Analyzes IAM permissions to determine access levels and identify dangerous permissions
-- **Comprehensive Classification**: Categorizes NHIs into specific types:
-  - Service Roles (Lambda, EC2, ECS, etc.)
-  - Machine Users
-  - Application Roles
-  - Cross-Account Roles
-  - Federated Roles
-  - And more...
-- **User vs NHI Distinction**: Provides detailed breakdown and recommendations for human vs non-human identities
+- Scans all IAM users and roles in an AWS account
+- Classifies identities as human or non-human with confidence scoring
+- Categorizes NHIs by type (service roles, machine users, Lambda execution roles, etc.)
+- Optional permission analysis with access level assessment
+- Identifies dangerous permissions and potential security risks
 
 ## Installation
 
-### Prerequisites
+### Requirements
 
 - Python 3.10 or higher
 - AWS credentials with IAM read permissions
 
 ### Setup
 
-1. Clone the repository:
+Clone the repository and install dependencies:
+
 ```bash
 git clone https://github.com/yourusername/NHI-scan-mcp.git
 cd NHI-scan-mcp
-```
-
-2. Install dependencies:
-```bash
 pip install -r requirements.txt
 ```
 
-Or install in development mode:
+For development mode:
 ```bash
 pip install -e .
 ```
 
 ## Usage
 
-### Running as an MCP Server
-
-Start the MCP server:
+### Starting the Server
 
 ```bash
 python -m nhi_scan_mcp.server
 ```
 
-Or use the direct path:
-
+Alternatively:
 ```bash
 python src/nhi_scan_mcp/server.py
 ```
 
-### Available MCP Tools
+### MCP Tools
 
-The server exposes the following tools that can be called by MCP clients:
+The server exposes five tools for IAM scanning and analysis:
 
-#### 1. `scan_iam_identities`
+#### `scan_iam_identities`
 
-Comprehensive scan of all IAM identities with NHI classification and optional permission analysis.
+Main scanning tool that lists all IAM identities, classifies NHIs, and optionally analyzes permissions.
 
 **Parameters:**
-- `aws_access_key_id` (optional): AWS access key ID
-- `aws_secret_access_key` (optional): AWS secret access key
-- `aws_session_token` (optional): AWS session token for temporary credentials
-- `region` (optional): AWS region (default: us-east-1)
-- `include_permissions` (optional): Include detailed permission analysis (default: false)
+- `aws_access_key_id` (string, optional) - AWS access key ID
+- `aws_secret_access_key` (string, optional) - AWS secret access key
+- `aws_session_token` (string, optional) - Session token for temporary credentials
+- `region` (string, optional) - AWS region, defaults to us-east-1
+- `include_permissions` (boolean, optional) - Include permission analysis, defaults to false
 
 **Example:**
 ```json
@@ -82,62 +74,71 @@ Comprehensive scan of all IAM identities with NHI classification and optional pe
 }
 ```
 
-#### 2. `list_nhi_identities`
+**Returns:** Complete scan results including all identities, NHI classifications, confidence scores, and optional permission analysis.
 
-List all identified Non-Human Identities with filtering by confidence level.
+#### `list_nhi_identities`
 
-**Parameters:**
-- `aws_access_key_id` (optional): AWS access key ID
-- `aws_secret_access_key` (optional): AWS secret access key
-- `aws_session_token` (optional): AWS session token
-- `region` (optional): AWS region (default: us-east-1)
-- `min_confidence` (optional): Minimum confidence threshold (0.0-1.0, default: 0.5)
-
-#### 3. `analyze_caller_permissions`
-
-Analyze the permissions of the current AWS credentials.
+Returns only non-human identities filtered by confidence threshold.
 
 **Parameters:**
-- `aws_access_key_id` (optional): AWS access key ID
-- `aws_secret_access_key` (optional): AWS secret access key
-- `aws_session_token` (optional): AWS session token
-- `region` (optional): AWS region (default: us-east-1)
+- `aws_access_key_id` (string, optional)
+- `aws_secret_access_key` (string, optional)
+- `aws_session_token` (string, optional)
+- `region` (string, optional)
+- `min_confidence` (float, optional) - Minimum confidence threshold (0.0-1.0), defaults to 0.5
 
-#### 4. `get_identity_details`
+**Returns:** Filtered list of NHIs meeting the confidence threshold with classification details.
 
-Get detailed information about a specific IAM identity.
+#### `analyze_caller_permissions`
 
-**Parameters:**
-- `identity_name` (required): Name of the IAM user or role
-- `identity_type` (optional): "user" or "role" (default: user)
-- `aws_access_key_id` (optional): AWS access key ID
-- `aws_secret_access_key` (optional): AWS secret access key
-- `aws_session_token` (optional): AWS session token
-- `region` (optional): AWS region (default: us-east-1)
-
-#### 5. `distinguish_users_vs_nhi`
-
-Distinguish between human users and non-human identities with detailed summary and recommendations.
+Analyzes permissions for the AWS credentials being used to run the scan.
 
 **Parameters:**
-- `aws_access_key_id` (optional): AWS access key ID
-- `aws_secret_access_key` (optional): AWS secret access key
-- `aws_session_token` (optional): AWS session token
-- `region` (optional): AWS region (default: us-east-1)
+- `aws_access_key_id` (string, optional)
+- `aws_secret_access_key` (string, optional)
+- `aws_session_token` (string, optional)
+- `region` (string, optional)
+
+**Returns:** Permission analysis for the caller including access level and dangerous permissions.
+
+#### `get_identity_details`
+
+Retrieves detailed information for a specific IAM user or role.
+
+**Parameters:**
+- `identity_name` (string, required) - Name of the IAM user or role
+- `identity_type` (string, optional) - Either "user" or "role", defaults to user
+- `aws_access_key_id` (string, optional)
+- `aws_secret_access_key` (string, optional)
+- `aws_session_token` (string, optional)
+- `region` (string, optional)
+
+**Returns:** Complete identity details including NHI classification and permission analysis.
+
+#### `distinguish_users_vs_nhi`
+
+Provides a breakdown separating human users from non-human identities with statistics and recommendations.
+
+**Parameters:**
+- `aws_access_key_id` (string, optional)
+- `aws_secret_access_key` (string, optional)
+- `aws_session_token` (string, optional)
+- `region` (string, optional)
+
+**Returns:** Summary statistics, user lists by category, and security recommendations.
 
 ### AWS Credentials
 
-The tools support multiple ways to provide AWS credentials:
+Credentials can be provided in the following order of precedence:
 
-1. **Explicit credentials**: Pass `aws_access_key_id` and `aws_secret_access_key` parameters
-2. **Default credential chain**: If credentials are not provided, the tools will use:
-   - Environment variables (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`)
-   - AWS credentials file (`~/.aws/credentials`)
-   - IAM role (if running on EC2/ECS)
+1. Explicit parameters (`aws_access_key_id`, `aws_secret_access_key`)
+2. Environment variables (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`)
+3. AWS credentials file (`~/.aws/credentials`)
+4. IAM role (when running on EC2/ECS)
 
 ### Required IAM Permissions
 
-The AWS credentials used must have the following IAM permissions:
+The AWS credentials must have the following permissions:
 
 ```json
 {
@@ -171,54 +172,43 @@ The AWS credentials used must have the following IAM permissions:
 }
 ```
 
-## How NHI Identification Works
+## NHI Identification Methodology
 
-The tool uses multiple signals to identify Non-Human Identities:
+### IAM Users
 
-### For IAM Users:
+The tool evaluates multiple signals to determine if a user is non-human:
 
-1. **Name Patterns**: Matches against common NHI naming conventions (e.g., `svc-`, `app-`, `bot-`, `api-`)
-2. **Password Usage**: Users who have never logged in with a password
-3. **Access Keys**: Presence of programmatic access keys
-4. **MFA Status**: Lack of MFA devices (human users should have MFA)
-5. **Tags**: Explicit tags indicating service accounts or automation
+- **Name patterns** - Matches against common prefixes like `svc-`, `app-`, `bot-`, `api-`, `lambda-`, `ci-`, `cd-`, `terraform-`, `ansible-`, etc.
+- **Password usage** - Users with no password login history
+- **Access keys** - Presence of active programmatic access keys
+- **MFA status** - Absence of MFA devices (expected for human users)
+- **Tags** - Explicit tags marking service accounts, bots, or automation
 
-### For IAM Roles:
+Each signal contributes to a confidence score from 0.0 to 1.0. Users with confidence ≥ 0.5 are classified as NHIs.
 
-All roles are considered NHIs by definition, but are further classified into:
+### IAM Roles
 
-- **Service Roles**: Roles assumed by AWS services (Lambda, EC2, etc.)
-- **Lambda Execution Roles**: Specifically for Lambda functions
-- **EC2 Instance Profiles**: For EC2 instances
-- **Cross-Account Roles**: Roles that trust other AWS accounts
-- **Federated Roles**: Roles for SAML/OIDC federation
-- **Application Roles**: General application service roles
+All roles are inherently non-human, but are further classified by analyzing their assume role policy:
+
+- **Service roles** - Trusted by AWS services (Lambda, EC2, ECS, etc.)
+- **Lambda execution roles** - Specifically for Lambda functions
+- **EC2 instance profiles** - For EC2 instances
+- **Cross-account roles** - Trust relationships with other AWS accounts
+- **Federated roles** - SAML or OIDC federation
+- **Application roles** - General application service roles
 
 ## Examples
 
-See the `examples/` directory for complete usage examples:
+Example scripts are available in the `examples/` directory:
 
-- `basic_scan.py`: Basic IAM scanning and NHI identification
-- `permission_analysis.py`: Detailed permission analysis
-- `user_vs_nhi.py`: Distinguishing human users from NHIs
-
-## Security Best Practices
-
-1. **Credential Management**: Use IAM roles when possible instead of long-term credentials
-2. **Least Privilege**: Grant only the minimum required IAM permissions
-3. **MFA**: Enable MFA for all human users
-4. **NHI Migration**: Consider migrating NHI users to IAM roles for better security
-5. **Regular Audits**: Regularly scan your IAM identities to identify and clean up unused accounts
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
+- `basic_scan.py` - Basic IAM scanning and NHI identification
+- `permission_analysis.py` - Detailed permission analysis
+- `user_vs_nhi.py` - Distinguishing human users from NHIs
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+MIT License - see LICENSE file for details.
 
 ## Acknowledgments
 
-- Built with [FastMCP](https://github.com/jlowin/fastmcp) for the Model Context Protocol server
-- Uses [boto3](https://github.com/boto/boto3) for AWS API interactions
+Built with [FastMCP](https://github.com/jlowin/fastmcp) for Model Context Protocol server implementation and [boto3](https://github.com/boto/boto3) for AWS API interactions.
